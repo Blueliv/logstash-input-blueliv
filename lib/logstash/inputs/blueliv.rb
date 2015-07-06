@@ -185,12 +185,18 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
         block.call if block
         break
       rescue RestClient::Exception => e
-        @logger.error(e)
         case e.http_code
           when 401, 403
             @logger.info("You do not have access to this resource! Please contact #{@contact}")
             break
+          when 404
+            @logger.info("Resource #{url} not found")
+            break
+          when 429
+            @logger.info("You exceeded your request limit rate!")
+            break
           else
+            @logger.error(e)
             @logger.info("Will retry in #{FAILURE_SLEEP} seconds")
             sleep(FAILURE_SLEEP)
         end

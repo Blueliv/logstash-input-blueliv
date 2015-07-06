@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "logstash-input-blueliv"
-  s.version = "0.1.0"
+  s.version = "0.1.1"
   s.licenses = ["Apache License (2.0)"]
   s.summary = "This plugin allows users to access Blueliv Crime Servers and Bot IPs feeds."
   s.description = "This gem is a logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/plugin install logstash-input-blueliv. This gem is not a stand-alone program"
