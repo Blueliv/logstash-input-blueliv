@@ -28,16 +28,16 @@ This plugin has the following configuration parameters:
 
 The default configuration for ``feeds`` field is the following:
 ```javascript
-  "crimeservers" => {
-      "active" => false,
-      "feed_type" => "test",
-      "interval" => 900,
-    },
-    "botips" => {
-      "active" => false,
-      "feed_type" => "test",
-      "interval" => 600
-    }
+"crimeservers" => {
+    "active" => false,
+    "feed_type" => "test",
+    "interval" => 900,
+  },
+  "botips" => {
+    "active" => false,
+    "feed_type" => "test",
+    "interval" => 600
+  }
 ```
 
 
@@ -45,17 +45,19 @@ The default configuration for ``feeds`` field is the following:
 
 ```javascript
 input {
-     blueliv { api_key => "7da63a74-bece-42b0-843b-15728e44740d"
-               feeds => { "botips" => {
-                                "active" => true
-                                "feed_type" => "non_pos"
-                          }
-                          "crimeservers" => {
-                                "active" => true
-                                "feed_type" => "all"
-                          }
-              }
-            }
+ blueliv {
+  api_key => "<YOUR API KEY>"
+  feeds => {
+    "botips" => {
+      "active" => true
+      "feed_type" => "non_pos"
+    }
+    "crimeservers" => {
+      "active" => true
+      "feed_type" => "all"
+    }
+  }
+ }
 }
 ```
 Be aware that if you do not specify a given field, the default value will be configured. In this case, we did not touch the ``interval`` field for the feeds, so the defaults will apply.
