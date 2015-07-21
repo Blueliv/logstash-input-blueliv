@@ -72,7 +72,8 @@ describe LogStash::Inputs::Blueliv do
        subject.auth = authorization
        subject.timeout = timeout
 
-       allow(subject.client).to receive(:get).with(url, :Authorization => authorization, :timeout => timeout).and_return(mock_response)
+       allow(subject.client).to receive(:get).with("#{url}?key=#{API_CLIENT}", :Authorization => authorization,
+        :timeout => timeout, :user_agent => USER_AGENT, :headers => {"X-API-CLIENT" => API_CLIENT}).and_return(mock_response)
        subject.get_feed logstash_queue, feed_name, url
        expect(logstash_queue.size).to eq(1)
        subject.teardown

@@ -7,6 +7,10 @@ require "logstash/namespace"
 require "rest-client"
 require "securerandom"
 
+
+USER_AGENT = "Logstash v0.1.2"
+API_CLIENT = "6ee37a93-d064-464b-b4c1-c37e9656273f"
+
 ONE_DAY_IN_SECONDS = 86400
 
 RESOURCES = {
@@ -170,7 +174,8 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
   def get_feed(queue, name, url, &block)
     loop do
       begin
-        response = client.get url, :Authorization => @auth, :timeout => @timeout
+        response = client.get("#{url}?key=#{API_CLIENT}", :Authorization => @auth, :timeout => @timeout,
+          :user_agent => USER_AGENT, :headers => {"X-API-CLIENT" => API_CLIENT})
         response_json = JSON.parse(response.body)
         items = response_json[RESOURCES[name.to_sym][:items]]
         items.each do |it|
