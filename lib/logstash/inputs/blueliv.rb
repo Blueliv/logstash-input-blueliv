@@ -11,17 +11,16 @@ require "securerandom"
 USER_AGENT = "Logstash v0.1.2"
 API_CLIENT = "6ee37a93-d064-464b-b4c1-c37e9656273f"
 
-ONE_DAY_IN_SECONDS = 86400
-
 RESOURCES = {
   :crimeservers => {
     :items => "crimeServers",
     :endpoint => "/v1/crimeserver",
     :feeds => {
-      :all => {
-        900 => "/last",
-        3600 => "/recent",
-        ONE_DAY_IN_SECONDS => "/online"
+      :last => {
+        900 => "/last"
+      },
+      :recent => {
+        3600 => "/recent"
       },
       :test => {
         900 => "/test"
@@ -53,10 +52,9 @@ RESOURCES = {
 
 DEFAULT_CONFIG = {
   "crimeservers" => {
-      "active" => false,
+      "active" => true,
       "feed_type" => "test",
-      "interval" => 900,
-      "initialize" => true
+      "interval" => 900
     },
     "botips" => {
       "active" => false,
@@ -96,19 +94,8 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
       threads = []
       @feeds.each do |name, conf|
         if feeds[name]["active"]
-          if feeds[name]["initialize"]
-            if not db_updated?(DateTime.now)
-              threads << Thread.new do
-                url, interval = get_url(name, @feeds[name]["feed_type"], ONE_DAY_IN_SECONDS)
-                get_feed(queue, name, url) { write_last_update_db(DateTime.now) }
-                url, interval = get_url(name, @feeds[name]["feed_type"], @feeds[name]["interval"])
-                get_feed_each(queue, name, url, interval) { write_last_update_db(DateTime.now) }
-              end
-            end
-          else
-            url, interval = get_url(name, @feeds[name]["feed_type"], @feeds[name]["interval"])
-            threads << Thread.new(get_feed_each(queue, name, url, interval))
-          end
+          url, interval = get_url(name, @feeds[name]["feed_type"], @feeds[name]["interval"])
+          threads << Thread.new(get_feed_each(queue, name, url, interval))
         end
       end
 
@@ -172,6 +159,7 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
   end
 
   def get_feed(queue, name, url, &block)
+    @logger.info("Start getting #{url} feed")
     loop do
       begin
         response = client.get("#{url}?key=#{API_CLIENT}", :Authorization => @auth, :timeout => @timeout,
@@ -182,17 +170,20 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
           it["location"] = [it["longitude"].to_f, it["latitude"].to_f]
           collection = RESOURCES[name.to_sym][:items].downcase
           it["@collection"] = collection
-          it["_id"] = SecureRandom.base64(32) unless it.has_key?("_id")
+          it["document_id"] = if it.has_key?("_id") then it["_id"] else SecureRandom.base64(32) end
+          it.delete("_id") if it.has_key?("_id")
+          @logger.info("#{it}")
           evt =  LogStash::Event.new(it)
           decorate(evt)
           queue << evt
         end
+        @logger.info("End getting data from #{url}")
         block.call if block
         break
       rescue RestClient::Exception => e
         case e.http_code
           when 401, 403
-            @logger.info("You do not have access to this resource! Please contact #{@contact}")
+            @logger.info("You do not have access to this resource #{url}! Please contact #{@contact}")
             break
           when 404
             @logger.info("Resource #{url} not found")
