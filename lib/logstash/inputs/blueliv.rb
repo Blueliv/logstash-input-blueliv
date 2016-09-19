@@ -93,9 +93,9 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
   def run(queue)
       threads = []
       @feeds.each do |name, conf|
-        if feeds[name]["active"]
+        if feeds[name]["active"] == 'true'
           url, interval = get_url(name, @feeds[name]["feed_type"], @feeds[name]["interval"])
-          threads << Thread.new(get_feed_each(queue, name, url, interval))
+          threads << Thread.new{get_feed_each(queue, name, url, interval)}
         end
       end
 
@@ -172,7 +172,7 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
           it["@collection"] = collection
           it["document_id"] = if it.has_key?("_id") then it["_id"] else SecureRandom.base64(32) end
           it.delete("_id") if it.has_key?("_id")
-          @logger.info("#{it}")
+          @logger.debug("#{it}")
           evt =  LogStash::Event.new(it)
           decorate(evt)
           queue << evt
