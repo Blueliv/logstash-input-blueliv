@@ -6,12 +6,12 @@ This is an input plugin for [Logstash](https://github.com/elasticsearch/logstash
 
 * API key (get yours <a href="https://map.blueliv.com" target="_blank">here</a>)
 * Logstash >= 1.5.0
-* 1.5 GB of RAM of heap size for Logstash (``-Xmx1500m``)
+* ElasticSearch >= 2.0.0 (Tested on 2.4.0)
 
 ## Installing
 
 ```
-$LS_HOME/bin/plugin install logstash-input-blueliv
+$LS_HOME/bin/plugin install --version 1.0.1 logstash-input-blueliv
 ```
 
 ### Configuration
@@ -23,7 +23,7 @@ This plugin has the following configuration parameters:
 + ``http_timeout``(default: ``500`` seconds): HTTP timeout for each API call.
 + ``feeds``: It is a [hash](http://ruby-doc.org/core-1.9.3/Hash.html) that specifies the parameters to access each one of our feeds. Each feed may be configured with the following properties:
     + ``active`` (default: ``false``): if the feed is active or not.
-    + ``feed_type`` (default: ``test``): the type of the feed that you want. For **Crime Servers** apart from ``test`` (for _debug_ purposes) you only have ``all``. As of **Bot IPs** you may choose between ``non_pos`` (all BotIPs **but** the ones from Point-of-Sale), ``pos`` (only from POS)  or ``full`` (all of them) feed.
+    + ``feed_type`` (default: ``test``): the type of the feed that you want. For **Crime Servers** apart from ``test`` (for _debug_ purposes) you have ``recent`` (1 hour updates) and ``last`` (15 minutes updates). As of **Bot IPs** you may choose between ``non_pos`` (all BotIPs **but** the ones from Point-of-Sale), ``pos`` (only from POS)  or ``full`` (all of them) feed.
     + ``interval`` (default: ``600`` seconds for BotIPs and ``900`` seconds for Crime Servers). The intervall of polling data from our API.
 
 The default configuration for ``feeds`` field is the following:
@@ -54,7 +54,7 @@ input {
     }
     "crimeservers" => {
       "active" => true
-      "feed_type" => "all"
+      "feed_type" => "recent"
     }
   }
  }
