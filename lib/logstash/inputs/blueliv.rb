@@ -8,7 +8,7 @@ require "rest-client"
 require "securerandom"
 
 
-USER_AGENT = "Logstash v0.1.2"
+USER_AGENT = "Logstash 1.1.0"
 API_CLIENT = "6ee37a93-d064-464b-b4c1-c37e9656273f"
 
 RESOURCES = {
@@ -32,35 +32,69 @@ RESOURCES = {
     :endpoint => "/v1/ip",
     :feeds => {
       :non_pos => {
-        600 => "/recent",
-        3600 => "/last"
+        600 => "/last",
+        3600 => "/recent"
       },
       :pos => {
-        600 => "/pos/recent",
-        3600 => "/pos/last"
+        600 => "/pos/last",
+        3600 => "/pos/recent"
       },
       :full => {
-        600 => "/full/recent",
-        3600 => "/full/last"
+        600 => "/full/last",
+        3600 => "/full/recent"
       },
       :test => {
         600 => "/test"
+      }
+    }
+  },
+  :attacks => {
+    :items => "attacks",
+    :endpoint => "/v1/attack",
+    :feeds => {
+      :last => {
+        1800 => "/last"
+      },
+      :recent => {
+        10800 => "/recent"
+      }
+    }
+  },
+  :malwares => {
+    :items => "malwares",
+    :endpoint => "/v1/malware",
+    :feeds => {
+      :last => {
+        600 => "/last"
+      },
+      :recent => {
+        3600 => "/recent"
       }
     }
   }
 }
 
 DEFAULT_CONFIG = {
+  "attacks" => {
+    "active" => false,
+    "feed_type" => "recent",
+    "interval" => 600
+  },
+  "botips" => {
+    "active" => false,
+    "feed_type" => "test",
+    "interval" => 600
+  },
   "crimeservers" => {
-      "active" => true,
-      "feed_type" => "test",
-      "interval" => 900
-    },
-    "botips" => {
-      "active" => false,
-      "feed_type" => "test",
-      "interval" => 600
-    }
+    "active" => true,
+    "feed_type" => "test",
+    "interval" => 900
+  },
+  "malwares" => {
+    "active" => false,
+    "feed_type" => "recent",
+    "interval" => 3600
+  }
 }
 
 INITIALIZE_FILE = "blueliv.ini"
@@ -93,8 +127,8 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
   def run(queue)
       threads = []
       @feeds.each do |name, conf|
-        if feeds[name]["active"] == 'true'
-          url, interval = get_url(name, @feeds[name]["feed_type"], @feeds[name]["interval"])
+        if conf["active"] == 'true'
+          url, interval = get_url(name, conf["feed_type"], conf["interval"])
           threads << Thread.new{get_feed_each(queue, name, url, interval)}
         end
       end
@@ -165,10 +199,11 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
         response = client.get("#{url}?key=#{API_CLIENT}", :Authorization => @auth, :timeout => @timeout,
           :user_agent => USER_AGENT, :headers => {"X-API-CLIENT" => API_CLIENT})
         response_json = JSON.parse(response.body)
-        items = response_json[RESOURCES[name.to_sym][:items]]
+        keyItems = RESOURCES[name.to_sym][:items]
+        items = response_json[keyItems]
         items.each do |it|
-          it["location"] = [it["longitude"].to_f, it["latitude"].to_f]
-          collection = RESOURCES[name.to_sym][:items].downcase
+          collection = keyItems.downcase
+          it = send("map_"+collection, it)
           it["@collection"] = collection
           it["document_id"] = if it.has_key?("_id") then it["_id"] else SecureRandom.base64(32) end
           it.delete("_id") if it.has_key?("_id")
@@ -198,6 +233,7 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
         end
       rescue Exception => e
         @logger.info("Will retry in #{FAILURE_SLEEP} seconds")
+        @logger.info(e.message+"\n"+e.backtrace.join("\n"))
         sleep(FAILURE_SLEEP)
       end
     end
@@ -207,4 +243,35 @@ class LogStash::Inputs::Blueliv < LogStash::Inputs::Base
     RestClient
   end
 
+  private
+  def map_global_location(it)
+    it["location"] = [it["longitude"].to_f, it["latitude"].to_f]
+    return it
+  end
+
+  def map_ips(it)
+    map_global_location(it)
+  end
+
+  def map_crimeservers(it)
+    map_global_location(it)
+  end
+
+  def map_attacks(it)
+    source = it["source"];
+    #map_global_location(source);
+    it["location"] = [source["longitude"].to_f, source["latitude"].to_f]
+    firstEvent = DateTime.parse(it["firstEvent"])
+    lastEvent = DateTime.parse(it["lastEvent"])
+    duration = ((lastEvent - firstEvent)* 24 * 60 * 60).to_i
+    if duration < 0 
+      duration = -duration
+    end
+    it[:duration] = duration
+    return it
+  end
+  def map_malwares(it)
+    it["_id"] = it["sha256"]
+    return it
+  end
 end
