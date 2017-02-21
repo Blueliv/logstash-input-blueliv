@@ -4,7 +4,7 @@ This is an input plugin for [Logstash](https://github.com/elasticsearch/logstash
 
 ## Minimum Requirements
 
-* API key (get yours <a href="https://map.blueliv.com" target="_blank">here</a>)
+* API key (get yours [here](https://community.blueliv.com) )
 * Logstash >= 1.5.0
 * ElasticSearch >= 2.0.0 (Tested on 2.4.0)
 
