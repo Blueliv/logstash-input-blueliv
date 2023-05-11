@@ -1,3 +1,5 @@
+# This repositoy is deprecated and has been archived. Please contact customer support if you need help. Thanks
+
 # Logstash Input Plugin by Blueliv
 
 This is an input plugin for [Logstash](https://github.com/elasticsearch/logstash) created and maintained by Blueliv (community@blueliv.com), that allows to access Blueliv's Cyber-Threat Intelligence feeds, such as Crime Servers and Bot IPs.
